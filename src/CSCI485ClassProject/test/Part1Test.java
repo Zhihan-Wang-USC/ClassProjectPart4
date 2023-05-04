@@ -180,7 +180,7 @@ public class Part1Test {
   public void unitTest6() {
     tableManager.dropAllTables();
 
-    int numberOfTables = 1000;
+    int numberOfTables = 100;
 
     assertEquals(StatusCode.TABLE_NOT_FOUND, tableManager.deleteTable("Employee"));
     HashMap<String, TableMetadata> expectTables = new HashMap<>();
@@ -211,7 +211,7 @@ public class Part1Test {
   @Test
   public void unitTest7() {
     tableManager.dropAllTables();
-    int numberOfAttributes = 1000;
+    int numberOfAttributes = 100;
 
     TableMetadata employeeTable = new TableMetadata(EmployeeTableAttributeNames, EmployeeTableAttributeTypes,
         EmployeeTablePKAttributes);

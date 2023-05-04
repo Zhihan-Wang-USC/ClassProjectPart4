@@ -23,11 +23,32 @@ public class ComparisonPredicate {
 
   ComparisonOperator operator; // in the example, it is ==
 
+  public void setPredicateType(Type predicateType) {
+    this.predicateType = predicateType;
+  }
+
   // either a specific value, or another attribute
   private Object rightHandSideValue = null; // in the example, it is 1.1
   private AlgebraicOperator rightHandSideOperator; // in the example, it is *
 
+  public String getRightHandSideAttrName() {
+    return rightHandSideAttrName;
+  }
+
+  public void setRightHandSideAttrName(String rightHandSideAttrName) {
+    this.rightHandSideAttrName = rightHandSideAttrName;
+  }
+
   private String rightHandSideAttrName; // in the example, it is Age
+
+  public AttributeType getRightHandSideAttrType() {
+    return rightHandSideAttrType;
+  }
+
+  public void setRightHandSideAttrType(AttributeType rightHandSideAttrType) {
+    this.rightHandSideAttrType = rightHandSideAttrType;
+  }
+
   private AttributeType rightHandSideAttrType;
 
   public String getLeftHandSideAttrName() {
@@ -88,6 +109,11 @@ public class ComparisonPredicate {
 
   // validate the predicate, return PREDICATE_VALID if the predicate is valid
   public StatusCode validate() {
+    if (rightHandSideOperator!= null && rightHandSideOperator != AlgebraicOperator.PRODUCT) {
+      System.out.println("Only AlgebraicOperator.PRODUCT is supported for now");
+      return PREDICATE_OR_EXPRESSION_INVALID;
+    }
+
     if (predicateType == Type.NONE) {
       return StatusCode.PREDICATE_OR_EXPRESSION_VALID;
     } else if (predicateType == Type.ONE_ATTR) {
