@@ -8,12 +8,11 @@ import com.apple.foundationdb.directory.DirectoryLayer;
 import com.apple.foundationdb.directory.DirectorySubspace;
 import com.apple.foundationdb.subspace.Subspace;
 import com.apple.foundationdb.tuple.Tuple;
-import jdk.nashorn.internal.ir.WhileNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Function;
+import java.util.UUID;
 
 public class FDBHelper {
 
@@ -61,10 +60,11 @@ public class FDBHelper {
     if (hashCode == -1) {
       hashCode = record.hashCode();
     }
+    UUID uuid = UUID.randomUUID();
     byte[] prefix = tgtSubspace.pack(SUPSPACE_RECORD_PREFIX);
-    byte[] key = Tuple.fromBytes(prefix).add(hashCode).pack();
+    byte[] key = Tuple.fromBytes(prefix).add(uuid).pack(); // hash
 
-    byte[] value = new Tuple().add(hashCode).pack();
+    byte[] value = new Tuple().add(uuid).pack(); // hash
 
     tx.set(key, value);
     System.out.println("key: " + Utils.byteArray2String(key) + " value: " + Utils.byteArray2String(value));
@@ -72,7 +72,7 @@ public class FDBHelper {
     HashMap<String, Object> mapAttrNameToValueValue = record.getMapAttrNameToValueValue();
     // iterate over key value using for each loop
     for (String attrName : mapAttrNameToValueValue.keySet()) {
-      byte[] nkey = tgtSubspace.pack(new Tuple().add(hashCode).add(attrName));
+      byte[] nkey = tgtSubspace.pack(new Tuple().add(uuid).add(attrName)); //hash
       Object attrValue = mapAttrNameToValueValue.get(attrName);
       byte[] nvalue = new Tuple().addObject(attrValue).pack();
       tx.set(nkey, nvalue);
@@ -89,6 +89,10 @@ public class FDBHelper {
 
   public static SubspaceRecordIterator getSubspaceRecordIterator(DirectorySubspace tgtSubspace, Transaction tx) {
     return new SubspaceRecordIterator(tgtSubspace, tx);
+  }
+
+  public static SubspaceRecordIterator getSubspaceRecordIterator(DirectorySubspace tgtSubspace, Transaction tx, boolean clearOnExit) {
+    return new SubspaceRecordIterator(tgtSubspace, tx, clearOnExit);
   }
 
   public static class SubspaceRecordIterator extends Iterator {
@@ -135,8 +139,8 @@ public class FDBHelper {
       this.iterator = tx.getRange(range, ReadTransaction.ROW_LIMIT_UNLIMITED, true).iterator();
     }
 
-    private Record getRecordFromHashCode(int hashCode) {
-        byte[] prefix = tgtSubspace.pack(hashCode);
+    private Record getRecordFromUuid(UUID uuid) {
+        byte[] prefix = tgtSubspace.pack(uuid);
         byte[] firstKey = Utils.getFirstKeyWithPrefix(prefix);
         byte[] lastKey = Utils.getLastKeyWithPrefix(prefix);
 
@@ -167,8 +171,8 @@ public class FDBHelper {
       if (iterator.hasNext()) {
         KeyValue kv = iterator.next();
         Tuple value = Tuple.fromBytes(kv.getValue());
-        long hashCode = value.getLong(0);
-        return getRecordFromHashCode((int) hashCode);
+        UUID uuid = value.getUUID(0);
+        return getRecordFromUuid((uuid));
       }
       return null;
     }
@@ -178,7 +182,6 @@ public class FDBHelper {
         if (clearOnExit){
           tx.clear(tgtSubspace.range());
         }
-        tx.commit().join();
     }
 
     @Override
@@ -186,7 +189,6 @@ public class FDBHelper {
       if (clearOnExit){
         tx.clear(tgtSubspace.range());
       }
-      tx.commit().join();
     }
   }
 

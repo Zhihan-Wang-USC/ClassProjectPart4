@@ -1,15 +1,14 @@
 package CSCI485ClassProject;
 
-import CSCI485ClassProject.models.AssignmentExpression;
-import CSCI485ClassProject.models.ComparisonOperator;
-import CSCI485ClassProject.models.ComparisonPredicate;
-import CSCI485ClassProject.models.Record;
+import CSCI485ClassProject.models.*;
 import com.apple.foundationdb.KeyValue;
+import com.apple.foundationdb.Range;
 import com.apple.foundationdb.Transaction;
 import com.apple.foundationdb.Database;
 import com.apple.foundationdb.async.AsyncIterator;
 import com.apple.foundationdb.directory.DirectorySubspace;
 import com.apple.foundationdb.tuple.Tuple;
+import sun.lwawt.macosx.CSystemTray;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.*;
@@ -23,11 +22,20 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
   private Database db;
 
+  private RecordsImpl recordsImpl;
+
+  private TableManagerImpl tableManagerImpl;
+
+  private IndexesImpl indexes;
+
   public RelationalAlgebraOperatorsImpl() {
-      this.db = FDBHelper.initialization();
+    this.db = FDBHelper.initialization();
+    this.recordsImpl = new RecordsImpl();
+    this.tableManagerImpl = new TableManagerImpl();
+    this.indexes = new IndexesImpl();
   }
 
-  private boolean checkCpAndTableCompatible(ComparisonOperator cp, String table){
+  private boolean checkCpAndTableCompatible(ComparisonOperator cp, String table) {
     if (cp == null || table == null) {
       System.out.println("ComparisonOperator or table name should not be null");
       return false;
@@ -36,7 +44,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     // TODO: implement this if need to
   }
 
-  public static Number multiplyNumber(Number a, Number b){
+  public static Number multiplyNumber(Number a, Number b) {
     if (a instanceof Integer && b instanceof Integer) {
       return a.intValue() * b.intValue();
     } else if (a instanceof Float && b instanceof Float) {
@@ -57,8 +65,8 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     }
   }
 
-  public static boolean compareNumber(Number a, Number b, ComparisonOperator comp){
-    switch (comp){
+  public static boolean compareNumber(Number a, Number b, ComparisonOperator comp) {
+    switch (comp) {
       case EQUAL_TO:
         return a.equals(b);
       case GREATER_THAN_OR_EQUAL_TO:
@@ -74,18 +82,18 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
   }
 
   // Assumes that the table and the comparison predicate are compatible
-  public static Function<Record, Boolean> createCpFunction(ComparisonPredicate cp){
+  public static Function<Record, Boolean> createCpFunction(ComparisonPredicate cp) {
     return record -> {
       Map<String, Object> map = record.getMapAttrNameToValueValue();
-      if (cp.getPredicateType() == ComparisonPredicate.Type.NONE){
+      if (cp.getPredicateType() == ComparisonPredicate.Type.NONE) {
         return true;
       }
 
       Number lhs = (Number) map.get(cp.getLeftHandSideAttrName());
       Number rhs = null;
-      if (cp.getPredicateType() == ComparisonPredicate.Type.ONE_ATTR){
+      if (cp.getPredicateType() == ComparisonPredicate.Type.ONE_ATTR) {
         rhs = (Number) cp.getRightHandSideValue();
-      }else{
+      } else {
         rhs = (Number) map.get(cp.getRightHandSideAttrName());
         Number multiplier = (Number) cp.getRightHandSideValue();
         rhs = multiplyNumber(rhs, multiplier);
@@ -95,7 +103,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     };
   }
 
-  public static Record projectOne(Record record, String attrName){
+  public static Record projectOne(Record record, String attrName) {
     Map<String, Object> map = record.getMapAttrNameToValueValue();
     Record newRecord = new Record();
     newRecord.setAttrNameAndValue(attrName, map.get(attrName));
@@ -110,6 +118,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     private boolean isInitialized = false;
 
     private String projAttrName;
+
     public CursorIterator(Cursor cursor, Function<Record, Boolean> pcFunction, boolean isUsingIndex) {
       this.cursor = cursor;
       this.pcFunction = pcFunction;
@@ -118,8 +127,8 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
     @Override
     public Record next() {
-      Record tmp =  cursor.getNextRecord();
-      while (tmp != null && pcFunction.apply(tmp) == false){
+      Record tmp = cursor.getNextRecord();
+      while (tmp != null && pcFunction.apply(tmp) == false) {
         tmp = cursor.getNextRecord();
       }
 
@@ -162,6 +171,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     boolean noDup = false;
 
     Iterator recordIterator = null;
+
     public ProjectIterator(DirectorySubspace subspace, Transaction tx, boolean clearSubspace, String attributeName) {
       this.subspace = subspace;
       this.tx = tx;
@@ -194,8 +204,7 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
             return record;
           }
         }
-      }
-      else {
+      } else {
         Record record = recordIterator.next();
         if (record != null) {
           record = projectOne(record, attributeName);
@@ -244,8 +253,8 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
       // return ErrorCode if not indexed
 
       // if # attributes == 2
-        // check if the RHS attribute is indexed
-        // return ErrorCode if not indexed
+      // check if the RHS attribute is indexed
+      // return ErrorCode if not indexed
 
     } else {
       // naive approach
@@ -257,10 +266,9 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
       Cursor cursor = new Cursor(tableName, Utils.getCursorModeFromIteratorMode(mode));
       cursor.moveToFirst();
 
-      if (predicate.getPredicateType() == ComparisonPredicate.Type.NONE){
+      if (predicate.getPredicateType() == ComparisonPredicate.Type.NONE) {
         // all good
-      }
-      else if (checkCpAndTableCompatible(predicate.getOperator(), tableName) == false) {
+      } else if (checkCpAndTableCompatible(predicate.getOperator(), tableName) == false) {
         System.out.println("ComparisonOperator and table name are not compatible");
         return null;
       }
@@ -311,33 +319,29 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     // create a tmp directory with UUID
     DirectorySubspace tmpDir = FDBHelper.createOrOpenSubspace(tx, Arrays.asList("tmp", UUID.randomUUID().toString()));
 
-    if (isDuplicateFree){
+    if (isDuplicateFree) {
       // iterate over attributeName and write to fdb under tmp directory and some random prefix
       Record tmp = iterator.next();
-      while (tmp != null){
-          Object value = tmp.getValueForGivenAttrName(attrName);
-          if (value == null){
-              // do nothing
-          }
-          else{
-              // write to fdb
-              FDBHelper.setSubspaceKV(tmpDir, tx, value.toString(), value);
-          }
-          tmp = iterator.next();
+      while (tmp != null) {
+        Object value = tmp.getValueForGivenAttrName(attrName);
+        if (value == null) {
+          // do nothing
+        } else {
+          // write to fdb
+          FDBHelper.setSubspaceKV(tmpDir, tx, value.toString(), value);
+        }
+        tmp = iterator.next();
       }
 
       // create a new iterator over the tmp directory and return it
       //   public static Iterator getSubspaceProjectIterator(DirectorySubspace subspace, Transaction tx, boolean clearSubspace, String attributeName) {
       return getSubspaceProjectIterator(tmpDir, tx, true, attrName);
-    }
-    else {
+    } else {
       return new ProjectIterator(iterator, attrName);
     }
 
 
     //    public
-
-
 
 
 //    throw new NotImplementedException();
@@ -423,42 +427,207 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
 
     // clear tmpDirInner
     tx.clear(tmpDirInner.range());
-    return FDBHelper.getSubspaceRecordIterator(tmpDirRes, tx);
-
-
-      // for each record, write to DirectorySubspace
-
-    // iterate over outerIterator
-      // get record recA
-      // if recA == null
-        // break
-      // else
-        // innerIterator = getSubspaceProjectIterator(tmpDir, tx, true, attrName);
-          // get record recB
-          // if recB == null
-            // break
-         // else if predicate (A,B) == true
-            // create a new record with attrNames
-            // return record
-          // else
-            // continue
-
-
-//    return null;
+    return FDBHelper.getSubspaceRecordIterator(tmpDirRes, tx, true);
   }
 
   @Override
   public StatusCode insert(String tableName, Record record, String[] primaryKeys) {
-    return null;
+    Set<String> pkSet = new HashSet<>(Arrays.asList(primaryKeys));
+    Set<String> attrNamesSet = new HashSet<>(record.getMapAttrNameToValue().keySet());
+    attrNamesSet.removeAll(pkSet);
+
+    Object[] pkValues = new Object[primaryKeys.length];
+    for (int i = 0; i < primaryKeys.length; i++) {
+//      System.out.println("primaryKeys[i]: " + primaryKeys[i]);
+      pkValues[i] = record.getValueForGivenAttrName(primaryKeys[i]);
+    }
+
+    String[] attrNames = attrNamesSet.toArray(new String[0]);
+    Object[] attrValues = new Object[attrNames.length];
+    for (int i = 0; i < attrNames.length; i++) {
+      attrValues[i] = record.getValueForGivenAttrName(attrNames[i]);
+    }
+
+    return recordsImpl.insertRecord(tableName, primaryKeys, pkValues, attrNames, attrValues);
+  }
+
+  public StatusCode insertTx(String tableName, Record record, String[] primaryKeys, Transaction tx) {
+    Set<String> pkSet = new HashSet<>(Arrays.asList(primaryKeys));
+    Set<String> attrNamesSet = new HashSet<>(record.getMapAttrNameToValue().keySet());
+    attrNamesSet.removeAll(pkSet);
+
+    Object[] pkValues = new Object[primaryKeys.length];
+    for (int i = 0; i < primaryKeys.length; i++) {
+//      System.out.println("primaryKeys[i]: " + primaryKeys[i]);
+      pkValues[i] = record.getValueForGivenAttrName(primaryKeys[i]);
+    }
+
+    String[] attrNames = attrNamesSet.toArray(new String[0]);
+    Object[] attrValues = new Object[attrNames.length];
+    for (int i = 0; i < attrNames.length; i++) {
+      attrValues[i] = record.getValueForGivenAttrName(attrNames[i]);
+    }
+
+    return recordsImpl.insertRecordTx(tableName, primaryKeys, pkValues, attrNames, attrValues, tx);
   }
 
   @Override
   public StatusCode update(String tableName, AssignmentExpression assignExp, Iterator dataSourceIterator) {
-    return null;
+    UUID uuid = UUID.randomUUID();
+    String tmpDirName = uuid.toString();
+    Transaction tx = FDBHelper.openTransaction(db);
+    DirectorySubspace sourceIterDir = FDBHelper.createOrOpenSubspace(tx, Arrays.asList("tmp", tmpDirName, "multiIter"));
+
+    if (dataSourceIterator == null) {
+      dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ,false);
+    }
+
+    Record tmp = dataSourceIterator.next();
+    while (tmp != null) {
+      FDBHelper.setSubspaceRecord(sourceIterDir, tx, tmp);
+      tmp = dataSourceIterator.next();
+    }
+
+    Iterator sourceIter = FDBHelper.getSubspaceRecordIterator(sourceIterDir, tx);
+
+    DirectorySubspace updateIterDir = FDBHelper.createOrOpenSubspace(tx, Arrays.asList("tmp", tmpDirName, "update"));
+    tmp = sourceIter.next();
+    Function<Record, Record> f = assignExp.getAssignmentFunction();
+    while (tmp != null) {
+      Record res = f.apply(tmp);
+      System.out.println("\tupdateing record from: " + tmp.toString() + "\n\t\tto: " + res.toString());
+      FDBHelper.setSubspaceRecord(updateIterDir, tx, res);
+      tmp = sourceIter.next();
+    }
+
+
+    Iterator updateIter = FDBHelper.getSubspaceRecordIterator(updateIterDir, tx);
+    Iterator sourceIter2 = FDBHelper.getSubspaceRecordIterator(sourceIterDir, tx);
+
+    deleteTx(tableName, sourceIter2, tx);
+    tx.commit().join();
+    dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ,false);
+    tmp = dataSourceIterator.next();
+    while (tmp != null) {
+      System.out.println("afterDelete result: " + tmp.toString());
+      tmp = dataSourceIterator.next();
+    }
+
+    tx = FDBHelper.openTransaction(db);
+    tx.clear(sourceIterDir.range());
+
+    TableMetadata tableMetadata = tableManagerImpl.getTableMetadataTx(tx, tableName);
+    String[] primaryKeys = tableMetadata.getPrimaryKeys().toArray(new String[0]);
+
+    tmp = updateIter.next();
+    while (tmp != null) {
+      StatusCode statusCode = insert(tableName, tmp, primaryKeys);
+      System.out.println("Status code: " + statusCode);
+      System.out.println("inserting record: " + tmp.toString());
+      tmp = updateIter.next();
+    }
+
+    dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ,false);
+    tmp = dataSourceIterator.next();
+    while (tmp != null) {
+      System.out.println("final result: " + tmp.toString());
+      tmp = dataSourceIterator.next();
+    }
+
+
+
+    tx.commit().join();
+    return StatusCode.SUCCESS;
   }
+
 
   @Override
   public StatusCode delete(String tableName, Iterator iterator) {
-    return null;
+    Transaction tx = FDBHelper.openTransaction(db);
+    TableMetadata tableMetadata = tableManagerImpl.getTableMetadataTx(tx, tableName);
+
+    RecordTransformer recordTransformer = new RecordTransformer(tableName);
+    List<String> recordAttributeStorePath = recordTransformer.getRecordAttributeStorePath();
+    DirectorySubspace tableDirectory = FDBHelper.createOrOpenSubspace(tx, recordAttributeStorePath);
+
+    Record record = iterator.next();
+    while (record != null) {
+      Map<String, Object> pkMap = record.getMapAttrNameToValueValue();
+      Tuple primaryKeyValueTuple = Tuple.fromList(tableMetadata.getPrimaryKeys().stream().map(pkMap::get).collect(Collectors.toList()));
+
+      for (String attributeName : tableMetadata.getAttributes().keySet()) {
+        Tuple attributeKeyTuple = recordTransformer.getTableRecordAttributeKeyTuple(primaryKeyValueTuple, attributeName);
+        FDBKVPair fdbkvPair = FDBHelper.getCertainKeyValuePairInSubdirectory(
+                tableDirectory,
+                tx,
+                attributeKeyTuple,
+                recordAttributeStorePath);
+        if (fdbkvPair == null) {
+          continue;
+        }
+        FDBHelper.removeKeyValuePair(tx, tableDirectory, fdbkvPair.getKey());
+        indexes.deleteIndex(tx, tableName, attributeName, fdbkvPair.getValue().get(0), primaryKeyValueTuple);
+
+        byte[] keyPrefixB = tableDirectory.pack(RecordTransformer.getTableRecordAttributeKeyTuplePrefix(attributeName));
+        Range range = Range.startsWith(keyPrefixB);
+        AsyncIterator<KeyValue> kfIter = tx.getRange(range).iterator();
+        if (!kfIter.hasNext()) {
+          // the record we are deleating are the only record that have the attribute, so we need to shrink table metadata
+          tableManagerImpl.dropAttributeTx(tx, tableName, attributeName);
+        }
+      }
+
+
+      System.out.println("Deleting record: " + record.toString());
+      record = iterator.next();
+    }
+    tx.commit().join();
+
+    return StatusCode.SUCCESS;
+  }
+
+
+  public StatusCode deleteTx(String tableName, Iterator iterator, Transaction tx) {
+//    Transaction tx = FDBHelper.openTransaction(db);
+    TableMetadata tableMetadata = tableManagerImpl.getTableMetadataTx(tx, tableName);
+
+    RecordTransformer recordTransformer = new RecordTransformer(tableName);
+    List<String> recordAttributeStorePath = recordTransformer.getRecordAttributeStorePath();
+    DirectorySubspace tableDirectory = FDBHelper.createOrOpenSubspace(tx, recordAttributeStorePath);
+
+    Record record = iterator.next();
+    while (record != null) {
+      Map<String, Object> pkMap = record.getMapAttrNameToValueValue();
+      Tuple primaryKeyValueTuple = Tuple.fromList(tableMetadata.getPrimaryKeys().stream().map(pkMap::get).collect(Collectors.toList()));
+
+      for (String attributeName : tableMetadata.getAttributes().keySet()) {
+        Tuple attributeKeyTuple = recordTransformer.getTableRecordAttributeKeyTuple(primaryKeyValueTuple, attributeName);
+        FDBKVPair fdbkvPair = FDBHelper.getCertainKeyValuePairInSubdirectory(
+                tableDirectory,
+                tx,
+                attributeKeyTuple,
+                recordAttributeStorePath);
+        if (fdbkvPair == null) {
+          continue;
+        }
+        FDBHelper.removeKeyValuePair(tx, tableDirectory, fdbkvPair.getKey());
+        indexes.deleteIndex(tx, tableName, attributeName, fdbkvPair.getValue().get(0), primaryKeyValueTuple);
+
+        byte[] keyPrefixB = tableDirectory.pack(RecordTransformer.getTableRecordAttributeKeyTuplePrefix(attributeName));
+        Range range = Range.startsWith(keyPrefixB);
+        AsyncIterator<KeyValue> kfIter = tx.getRange(range).iterator();
+        if (!kfIter.hasNext()) {
+          // the record we are deleating are the only record that have the attribute, so we need to shrink table metadata
+          tableManagerImpl.dropAttributeTx(tx, tableName, attributeName);
+        }
+      }
+
+
+      System.out.println("Deleting record: " + record.toString());
+      record = iterator.next();
+    }
+//    tx.commit().join();
+
+    return StatusCode.SUCCESS;
   }
 }

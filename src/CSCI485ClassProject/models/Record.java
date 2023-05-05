@@ -160,10 +160,14 @@ public class Record {
    */
   public StatusCode setMapAttrNameToValue(HashMap<String, Object> mapAttrNameToValue) {
 
+
     List<Value> values = new ArrayList<>();
 
     for (Map.Entry<String, Object> kv : mapAttrNameToValue.entrySet()) {
       Value val = new Value();
+      if (kv.getValue() instanceof Value){
+        System.out.println("Record.setMapAttrNameToValue kv.getValue() instanceof Value");
+      }
       StatusCode status = val.setValue(kv.getValue());
       if (status != SUCCESS) {
         return status;

@@ -652,12 +652,7 @@ public class Cursor {
       if (fdbkvPair == null) {
         continue;
       }
-//      System.out.println(fdbkvPair);
-//      System.out.println(fdbkvPair.getKey());
       FDBHelper.removeKeyValuePair(tx, tableDirectory, fdbkvPair.getKey());
-
-//      System.out.println("delete attribute " + attributeName + " of record " + fdbkvPair.getValue().get(0) );
-
       indexes.deleteIndex(tx, tableName, attributeName, fdbkvPair.getValue().get(0), primaryKeyValueTuple);
 
       byte[] keyPrefixB = tableDirectory.pack(RecordTransformer.getTableRecordAttributeKeyTuplePrefix(attributeName));

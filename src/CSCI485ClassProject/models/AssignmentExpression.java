@@ -4,6 +4,7 @@ import CSCI485ClassProject.StatusCode;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import static CSCI485ClassProject.StatusCode.PREDICATE_OR_EXPRESSION_INVALID;
 
@@ -45,6 +46,54 @@ public class AssignmentExpression {
     this.rightHandSideAttrType = rightHandSideAttrType;
     this.rightHandSideValue = rightHandSideValue;
     this.rightHandSideOperator = rightHandSideOperator;
+  }
+
+  public Function<Record, Record> getAssignmentFunction(){
+
+    if (validate() != StatusCode.PREDICATE_OR_EXPRESSION_VALID){
+      System.out.println("Error: AssignmentExpression.getAssignmentFunction() expression is not valid." +
+          "Please check the expression before calling this function.");
+        return null;
+    }
+
+    if (expressionType == Type.ONE_ATTR){
+      return record -> {
+        Record recordCopy = new Record();
+        recordCopy.setMapAttrNameToValue(record.getMapAttrNameToValueValue());
+        recordCopy.setAttrNameAndValue(leftHandSideAttrName, rightHandSideValue);
+        return recordCopy;
+      };
+    }
+
+    if (expressionType == Type.TWO_ATTRS) {
+      return record -> {
+        Object rhsValue = record.getValueForGivenAttrName(rightHandSideAttrName);
+        if (!(rhsValue instanceof Number)){
+          System.out.println("Error: AssignmentExpression.getAssignmentFunction() rhsValue is not a number." +
+              "Please check the expression before calling this function.");
+          return null;
+        }
+
+        if (rightHandSideOperator != AlgebraicOperator.PRODUCT){
+          System.out.println("Error: AssignmentExpression.getAssignmentFunction() rhsOperator is not PRODUCT." +
+              "Please check the expression before calling this function.");
+          return null;
+        }
+
+        Long rhs = ((Number) rhsValue).longValue();
+        Long newRhs = rhs * ((Number) rightHandSideValue).longValue();
+        System.out.println("rhs from " + rhs + " to " + newRhs);
+
+        Record recordCopy = new Record();
+        recordCopy.setMapAttrNameToValue(record.getMapAttrNameToValueValue());
+        recordCopy.setAttrNameAndValue(leftHandSideAttrName, newRhs);
+
+        return recordCopy;
+      };
+    }
+
+    System.out.println("Error: AssignmentExpression.getAssignmentFunction() should not reach here.");
+    return null;
   }
 
   public StatusCode validate() {
