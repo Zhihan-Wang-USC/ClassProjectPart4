@@ -54,12 +54,6 @@ public class FDBHelper {
   }
 
   public static void setSubspaceRecord(DirectorySubspace tgtSubspace, Transaction tx, Record record) {
-    setSubspaceRecord(tgtSubspace, tx, record, -1);
-  }
-  public static void setSubspaceRecord(DirectorySubspace tgtSubspace, Transaction tx, Record record, int hashCode) {
-    if (hashCode == -1) {
-      hashCode = record.hashCode();
-    }
     UUID uuid = UUID.randomUUID();
     byte[] prefix = tgtSubspace.pack(SUPSPACE_RECORD_PREFIX);
     byte[] key = Tuple.fromBytes(prefix).add(uuid).pack(); // hash
@@ -67,7 +61,7 @@ public class FDBHelper {
     byte[] value = new Tuple().add(uuid).pack(); // hash
 
     tx.set(key, value);
-    System.out.println("key: " + Utils.byteArray2String(key) + " value: " + Utils.byteArray2String(value));
+//    System.out.println("key: " + Utils.byteArray2String(key) + " value: " + Utils.byteArray2String(value));
 
     HashMap<String, Object> mapAttrNameToValueValue = record.getMapAttrNameToValueValue();
     // iterate over key value using for each loop
@@ -77,15 +71,21 @@ public class FDBHelper {
       byte[] nvalue = new Tuple().addObject(attrValue).pack();
       tx.set(nkey, nvalue);
     }
-
-//    record.getMapAttrNameToValueValue().forEach((attrName, attrValue) -> {
-//      byte[] nkey = tgtSubspace.pack(new Tuple().add(hashCode).add(attrName));
-////      System.out.println("nkey: " + Utils.byteArray2String(nkey));
-//      byte[] nvalue = new Tuple().addObject(attrValue).pack();
-//      tx.set(nkey, nvalue);
-//      hashCode++;
-//    });
   }
+//  public static void setSubspaceRecord(DirectorySubspace tgtSubspace, Transaction tx, Record record, int hashCode) {
+//    if (hashCode == -1) {
+//      hashCode = record.hashCode();
+//    }
+//
+//
+////    record.getMapAttrNameToValueValue().forEach((attrName, attrValue) -> {
+////      byte[] nkey = tgtSubspace.pack(new Tuple().add(hashCode).add(attrName));
+//////      System.out.println("nkey: " + Utils.byteArray2String(nkey));
+////      byte[] nvalue = new Tuple().addObject(attrValue).pack();
+////      tx.set(nkey, nvalue);
+////      hashCode++;
+////    });
+//  }
 
   public static SubspaceRecordIterator getSubspaceRecordIterator(DirectorySubspace tgtSubspace, Transaction tx) {
     return new SubspaceRecordIterator(tgtSubspace, tx);

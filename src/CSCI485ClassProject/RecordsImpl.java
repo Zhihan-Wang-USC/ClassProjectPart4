@@ -14,17 +14,25 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class RecordsImpl implements Records{
+public class RecordsImpl implements Records {
 
   private Database db;
   private TableManagerImpl tableManager;
 
   private IndexesImpl indexes;
+
+  private boolean overwrite = false;
+
   public RecordsImpl() {
     db = FDBHelper.initialization();
     tableManager = new TableManagerImpl();
     indexes = new IndexesImpl();
 
+  }
+
+  public RecordsImpl(boolean overwrite) {
+    this();
+    this.overwrite = overwrite;
   }
 
 
@@ -41,7 +49,6 @@ public class RecordsImpl implements Records{
     if (primaryKeys.length != primaryKeysValues.length || !primaryKeySetOnRecord.equals(primaryKeySetOnInsert)) {
       return StatusCode.DATA_RECORD_PRIMARY_KEYS_UNMATCHED;
     }
-
 
 
     // Check attrNames are valid
@@ -68,7 +75,7 @@ public class RecordsImpl implements Records{
       String attrName = attrNamesArr.get(i);
       if (!attributeNamesOnRecord.contains(attrName)) {
         StatusCode success = tableManager.addAttributeTx(tx, tableName, attrName, FDBHelper.getType(attrValuesArr.get(i)));
-        assert(success == StatusCode.SUCCESS);
+        assert (success == StatusCode.SUCCESS);
       }
     }
 
@@ -84,7 +91,7 @@ public class RecordsImpl implements Records{
     boolean isAttributeTypeMatched = Arrays.stream(attrNames)
             .allMatch(attrName ->
                     tableMetadata.getAttributes().get(attrName) == null ||
-                            insertRecord.getTypeForGivenAttrName(attrName)==tableMetadata.getAttributes().get(attrName));
+                            insertRecord.getTypeForGivenAttrName(attrName) == tableMetadata.getAttributes().get(attrName));
     if (!isAttributeTypeMatched) {
       return StatusCode.DATA_RECORD_CREATION_ATTRIBUTE_TYPE_UNMATCHED;
     }
@@ -133,7 +140,7 @@ public class RecordsImpl implements Records{
 
 
     // Insert index
-    for (Map.Entry<String,Object> entry : mapAttributeNameToValue.entrySet()) {
+    for (Map.Entry<String, Object> entry : mapAttributeNameToValue.entrySet()) {
       String attrName = entry.getKey();
       Object attrValue = entry.getValue();
       if (indexes.isIndexExist(tx, tableName, attrName)) {
@@ -158,7 +165,6 @@ public class RecordsImpl implements Records{
     if (primaryKeys.length != primaryKeysValues.length || !primaryKeySetOnRecord.equals(primaryKeySetOnInsert)) {
       return StatusCode.DATA_RECORD_PRIMARY_KEYS_UNMATCHED;
     }
-
 
 
     // Check attrNames are valid
@@ -187,7 +193,7 @@ public class RecordsImpl implements Records{
       String attrName = attrNamesArr.get(i);
       if (!attributeNamesOnRecord.contains(attrName)) {
         StatusCode success = tableManager.addAttributeTx(tx, tableName, attrName, FDBHelper.getType(attrValuesArr.get(i)));
-        assert(success == StatusCode.SUCCESS);
+        assert (success == StatusCode.SUCCESS);
       }
     }
 
@@ -203,7 +209,7 @@ public class RecordsImpl implements Records{
     boolean isAttributeTypeMatched = Arrays.stream(attrNames)
             .allMatch(attrName ->
                     tableMetadata.getAttributes().get(attrName) == null ||
-                    insertRecord.getTypeForGivenAttrName(attrName)==tableMetadata.getAttributes().get(attrName));
+                            insertRecord.getTypeForGivenAttrName(attrName) == tableMetadata.getAttributes().get(attrName));
     if (!isAttributeTypeMatched) {
       return StatusCode.DATA_RECORD_CREATION_ATTRIBUTE_TYPE_UNMATCHED;
     }
@@ -236,7 +242,7 @@ public class RecordsImpl implements Records{
 //            RecordTransformer.getTableRecordExistTuple(primaryKeyValueTuple, tableMetadata.getPrimaryKeys()),
 //            recordAttributeStorePath);
 
-    if (pair != null) {
+    if (pair != null && overwrite == false) {
       // KVPair exists
       FDBHelper.abortTransaction(tx);
       return StatusCode.DATA_RECORD_CREATION_RECORD_ALREADY_EXISTS;
@@ -252,7 +258,7 @@ public class RecordsImpl implements Records{
 
 
     // Insert index
-    for (Map.Entry<String,Object> entry : mapAttributeNameToValue.entrySet()) {
+    for (Map.Entry<String, Object> entry : mapAttributeNameToValue.entrySet()) {
       String attrName = entry.getKey();
       Object attrValue = entry.getValue();
       if (indexes.isIndexExist(tx, tableName, attrName)) {
@@ -268,7 +274,7 @@ public class RecordsImpl implements Records{
 
   @Override
   public Cursor openCursor(String tableName, String attrName, Object attrValue, ComparisonOperator operator, Cursor.Mode mode, boolean isUsingIndex) {
-    Cursor cursor =  new Cursor(tableName, attrName, attrValue, operator, mode, isUsingIndex);
+    Cursor cursor = new Cursor(tableName, attrName, attrValue, operator, mode, isUsingIndex);
     if (cursor.getCursorStatus() == Cursor.CursorStatus.ERROR) {
       return null;
     }
@@ -277,7 +283,7 @@ public class RecordsImpl implements Records{
 
   @Override
   public Cursor openCursor(String tableName, Cursor.Mode mode) {
-    Cursor cursor =  new Cursor(tableName, mode);
+    Cursor cursor = new Cursor(tableName, mode);
     return cursor;
   }
 

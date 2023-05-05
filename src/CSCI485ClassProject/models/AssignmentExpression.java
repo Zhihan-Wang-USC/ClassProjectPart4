@@ -82,13 +82,13 @@ public class AssignmentExpression {
 
         Long rhs = ((Number) rhsValue).longValue();
         Long newRhs = rhs * ((Number) rightHandSideValue).longValue();
-        System.out.println("rhs from " + rhs + " to " + newRhs);
+        System.out.println("rhs== from " + rhs + " to " + newRhs);
 
-        Record recordCopy = new Record();
-        recordCopy.setMapAttrNameToValue(record.getMapAttrNameToValueValue());
-        recordCopy.setAttrNameAndValue(leftHandSideAttrName, newRhs);
+//        Record recordCopy = new Record();
+//        recordCopy.setMapAttrNameToValue(record.getMapAttrNameToValueValue());
+        record.setAttrNameAndValue(leftHandSideAttrName, newRhs);
 
-        return recordCopy;
+        return record;
       };
     }
 
