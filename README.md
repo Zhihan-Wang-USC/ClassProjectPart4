@@ -1,8 +1,27 @@
 # Class Project: Part 4
 
-This repo is the base codes of the ClassProject of 2023Spring CSCI485.
+submission from Zhihan Wang 2233534677 zhihanwa@usc.edu
+
+# To run the project
+
+Unzip the zip file to a directory
+
+open the directory with IntelliJ
+
+Run project with the following set up
+
+![image-20230504233510120](assets/image-20230504233510120.png)
+
+Should get the following result
+
+![image-20230504235055123](assets/image-20230504235055123.png)
+
+**Note:** rarely you will get transaction too old, just re-run it so that it works (its hard to reproduce). **Thank you for the semester! I really enjoy this class.**
+
+/////////////
 
 ## Getting Started
+
 You need to copy and paste the code of Part 1, 2 and 3 to this project. 
 Your codes need to be put under `src/CSCI485ClassProject/` and its subdirectories. 
 Verify correctness by executing the unit test of Part1/Part2/Part3 successfully.

@@ -388,24 +388,24 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     DirectorySubspace tmpDirRes = FDBHelper.createOrOpenSubspace(tx, Arrays.asList("tmp", tmpDirName, "res"));
     Record rOuter = outerIterator.next();
 
-    Iterator wtfIter = FDBHelper.getSubspaceRecordIterator(tmpDirInner, tx);
-    Record wtf = wtfIter.next();
-    while (wtf != null) {
-      System.out.println("wtf: " + wtf.toString());
-      wtf = wtfIter.next();
-    }
+//    Iterator wtfIter = FDBHelper.getSubspaceRecordIterator(tmpDirInner, tx);
+//    Record wtf = wtfIter.next();
+//    while (wtf != null) {
+//      System.out.println("wtf: " + wtf.toString());
+//      wtf = wtfIter.next();
+//    }
 
 
     while (rOuter != null) {
-      System.out.println("rOuter: " + rOuter.toString());
+//      System.out.println("rOuter: " + rOuter.toString());
       Iterator innerIter = FDBHelper.getSubspaceRecordIterator(tmpDirInner, tx);
       Record rInner = innerIter.next();
 
       while (rInner != null) {
-        System.out.println("rInner: " + rInner.toString());
+//        System.out.println("rInner: " + rInner.toString());
         Record res = joinFunction.apply(rOuter, rInner);
         if (res != null) {
-          System.out.println("Join result: " + res.toString());
+//          System.out.println("Join result: " + res.toString());
           FDBHelper.setSubspaceRecord(tmpDirRes, tx, res);
         }
         rInner = innerIter.next();
@@ -444,69 +444,40 @@ public class RelationalAlgebraOperatorsImpl implements RelationalAlgebraOperator
     UUID uuid = UUID.randomUUID();
     String tmpDirName = uuid.toString();
     Transaction tx = FDBHelper.openTransaction(db);
-    DirectorySubspace sourceIterDir = FDBHelper.createOrOpenSubspace(tx, Arrays.asList("tmp", tmpDirName, "source"));
+
+    TableMetadata tableMetadata = tableManagerImpl.getTableMetadataTx(tx, tableName);
+    String[] primaryKeys = tableMetadata.getPrimaryKeys().toArray(new String[0]);
+
+    Function<Record, Record> f = assignExp.getAssignmentFunction();
 
     if (dataSourceIterator == null) {
       dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ,false);
     }
 
+//    tx.commit().join();
+    tx = FDBHelper.openTransaction(db);
+//    DirectorySubspace resIterDir = FDBHelper.createOrOpenSubspace(tx, Arrays.asList("tmp", tmpDirName, "source"));
+
     Record tmp = dataSourceIterator.next();
     while (tmp != null) {
-      FDBHelper.setSubspaceRecord(sourceIterDir, tx, tmp);
-      tmp = dataSourceIterator.next();
-    }
-
-    Iterator sourceIter = FDBHelper.getSubspaceRecordIterator(sourceIterDir, tx);
-
-    DirectorySubspace updateIterDir = FDBHelper.createOrOpenSubspace(tx, Arrays.asList("tmp", tmpDirName, "update"));
-    tmp = sourceIter.next();
-    Function<Record, Record> f = assignExp.getAssignmentFunction();
-    while (tmp != null) {
       Record res = f.apply(tmp);
-      System.out.println("\tupdateing record from: " + tmp.toString() + "\n\t\tto: " + res.toString());
-      FDBHelper.setSubspaceRecord(updateIterDir, tx, res);
-      tmp = sourceIter.next();
-    }
-
-
-
-    Iterator sourceIter2 = FDBHelper.getSubspaceRecordIterator(sourceIterDir, tx);
-    delete(tableName, sourceIter2);
-//    deleteTx(tableName, sourceIter2, tx);
-    tx.commit().join();
-
-    dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ,false);
-    tmp = dataSourceIterator.next();
-    while (tmp != null) {
-      System.out.println("afterDelete result: " + tmp.toString());
+      insert(tableName, res, primaryKeys);
       tmp = dataSourceIterator.next();
     }
+//    tx.commit().join();
 
-    tx = FDBHelper.openTransaction(db);
-    tx.clear(sourceIterDir.range());
-
-    TableMetadata tableMetadata = tableManagerImpl.getTableMetadataTx(tx, tableName);
-    String[] primaryKeys = tableMetadata.getPrimaryKeys().toArray(new String[0]);
-
-    Iterator updateIter = FDBHelper.getSubspaceRecordIterator(updateIterDir, tx);
-    tmp = updateIter.next();
-    while (tmp != null) {
-      StatusCode statusCode = insert(tableName, tmp, primaryKeys);
-      System.out.println("Status code: " + statusCode);
-      System.out.println("inserting record: " + tmp.toString());
-      tmp = updateIter.next();
-    }
-
-    dataSourceIterator = select(tableName, new ComparisonPredicate(), Iterator.Mode.READ,false);
-    tmp = dataSourceIterator.next();
-    while (tmp != null) {
-      System.out.println("final result: " + tmp.toString());
-      tmp = dataSourceIterator.next();
-    }
+//    tx = FDBHelper.openTransaction(db);
+//    Iterator iter = FDBHelper.getSubspaceRecordIterator(resIterDir, tx);
+//    tmp = iter.next();
+//    while (tmp != null) {
+//
+//      tmp = iter.next();
+//    }
+//    tx.commit().join();
 
 
 
-    tx.commit().join();
+//    tx.commit().join();
     return StatusCode.SUCCESS;
   }
 
